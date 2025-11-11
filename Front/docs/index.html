@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Doc pédagogique — Front (explicative, minimaliste) — corrigé</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;margin:18px;padding:0;line-height:1.45}
+  h1,h2,h3{margin:0 0 8px 0}
+  .container{max-width:900px;margin:0 auto;padding:18px}
+  pre{background:#f5f5f5;border:1px solid #e2e2e2;padding:12px;border-radius:6px;overflow:auto}
+  code{font-family:Consolas,monaco,monospace;font-size:13px;white-space:pre-wrap}
+  .explain{background:#fffbea;border-left:4px solid #f0c36d;padding:10px;margin:10px 0;border-radius:4px}
+  .note{background:#eef7ff;border-left:4px solid #79b7ff;padding:10px;margin:10px 0;border-radius:4px}
+  .small{font-size:13px;color:#555}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  .box{padding:12px;border:1px solid #eee;border-radius:6px}
+  .code-title{font-weight:700;margin-bottom:6px}
+  .ret{background:#f7fff7;border-left:4px solid #56c36a;padding:10px;margin:10px 0;border-radius:4px}
+  a{color:#0b66c3}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Documentation pédagogique — Front (version explicative, minimaliste, corrigée)</h1>
+  <p class="small">Niveau : étudiant. Contenu : explication pas-à-pas et code prêt à copier pour <strong>Custom Element</strong>, <strong>serveur Node.js + socket.io</strong>, <strong>Web Workers</strong> et <strong>Shared Worker</strong>.</p>
+
+  <!-- SECTION 1 -->
+  <section class="box" id="component">
+    <h2>1) Composant Web personnalisé — <code>&lt;composant-montre&gt;</code></h2>
+
+    <p class="small">But : encapsuler un widget heure/chronomètre/compte à rebours dans un élément HTML réutilisable.</p>
+
+    <div class="code-title">Code principal (fichier : <code>composant-montre.js</code>)</div>
+    <pre><code>&lt;!-- composant-montre.js --&gt;
+class ComposantMontre extends HTMLElement {
+  constructor(){
+    super();
+    this.attachShadow({mode:'open'});           // crée un Shadow DOM isolé
+    this.mode = this.getAttribute('mode') || 'date'; // mode : "date" ou "chrono"
+    this.shadowRoot.innerHTML = `
+      &lt;style&gt;
+        .montre{font-family:monospace;padding:8px;border-radius:8px;background:#111;color:#fff;display:inline-block}
+        button{margin:4px}
+      &lt;/style&gt;
+      &lt;div class="montre"&gt;
+        &lt;div id="display"&gt;--:--:--&lt;/div&gt;
+        &lt;div&gt;
+          &lt;button id="start"&gt;▶&lt;/button&gt;
+          &lt;button id="stop"&gt;⏸&lt;/button&gt;
+          &lt;button id="reset"&gt;🔄&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    `;
+  }
+
+  connectedCallback(){
+    this.display = this.shadowRoot.querySelector('#display');
+    this.startBtn = this.shadowRoot.querySelector('#start');
+    this.stopBtn = this.shadowRoot.querySelector('#stop');
+    this.resetBtn = this.shadowRoot.querySelector('#reset');
+
+    if(this.mode === 'date') this._startClock();
+    else this._initChrono();
+  }
+
+  _startClock(){
+    this._clockInterval = setInterval(()=> {
+      this.display.textContent = new Date().toLocaleTimeString();
+    }, 1000);
+  }
+
+  _initChrono(){
+    let start = 0, elapsed = 0, tick;
+    const update = ()=> {
+      const t = elapsed + (start ? (Date.now() - start)/1000 : 0);
+      this.display.textContent = t.toFixed(1) + 's';
+    };
+    this.startBtn.onclick = ()=>{
+      if(!start){ start = Date.now(); tick = setInterval(update, 100); }
+    };
+    this.stopBtn.onclick = ()=>{
+      if(start){ clearInterval(tick); elapsed += (Date.now() - start)/1000; start = 0; }
+    };
+    this.resetBtn.onclick = ()=>{
+      clearInterval(tick); start = 0; elapsed = 0; this.display.textContent = '0.0s';
+    };
+  }
+
+  disconnectedCallback(){
+    clearInterval(this._clockInterval);
+  }
+}
+customElements.define('composant-montre', ComposantMontre);</code></pre>
+
+    <div class="explain">
+      <strong>Explication ligne par ligne (essentiel) :</strong>
+      <ul>
+        <li><code>class ComposantMontre extends HTMLElement</code> : on définit un nouvel élément HTML en héritant de <code>HTMLElement</code>.</li>
+        <li><code>constructor()</code> : appelé quand l'élément est créé. On attache un Shadow DOM (isole styles & DOM) et on injecte l'HTML du composant.</li>
+        <li><code>this.getAttribute('mode')</code> : on récupère l'attribut HTML <code>mode</code> s'il existe (ex: <code>&lt;composant-montre mode="chrono"&gt;</code>).</li>
+        <li><code>connectedCallback()</code> : appelé quand l'élément est inséré dans le DOM. On récupère les boutons et on lance la logique selon le mode.</li>
+        <li><code>_startClock()</code> : démarre un <code>setInterval</code> qui met à jour l'affichage toutes les secondes (ne bloque pas l'UI).</li>
+        <li><code>_initChrono()</code> : implémente un chrono simple : <code>start</code>, <code>stop</code>, <code>reset</code>. On conserve <code>elapsed</code> pour accumuler le temps.</li>
+        <li><code>disconnectedCallback()</code> : nettoie les timers si l'élément est retiré (important pour éviter les fuites mémoire).</li>
+      </ul>
+    </div>
+
+    <div class="ret"><strong>À retenir :</strong> Custom Elements permettent d'encapsuler UI + logique. Shadow DOM protège le CSS. Toujours nettoyer timers/listeners dans <code>disconnectedCallback</code>.</div>
+  </section>
+
+  <!-- SECTION 2 -->
+  <section class="box" id="server">
+    <h2>2) Serveur Node.js + <code>socket.io</code> — chat simple</h2>
+    <p class="small">But : servir des fichiers statiques et synchroniser des messages temps réel entre clients via WebSocket (socket.io).</p>
+
+    <div class="code-title">Code complet (fichier : <code>server.js</code>)</div>
+    <pre><code>// server.js
+const http = require('http');          // sert des fichiers statiques
+const fs = require('fs');
+const path = require('path');
+const { Server } = require('socket.io'); // socket.io côté serveur
+
+const server = http.createServer((req, res) => {
+  let filePath = '.' + req.url;
+  if (filePath === './') filePath = './index.html';
+  const ext = path.extname(filePath) || '.html';
+  const mime = ext === '.js' ? 'text/javascript' : ext === '.css' ? 'text/css' : 'text/html';
+
+  fs.readFile(filePath, (err, content) => {
+    if (err) { res.writeHead(404); res.end('404 Not Found'); return; }
+    res.writeHead(200, { 'Content-Type': mime });
+    res.end(content);
+  });
+});
+
+const io = new Server(server); // relie socket.io au serveur HTTP
+io.on('connection', socket => {
+  console.log('Client connecté');
+  socket.on('message', msg => {
+    // rediffuse le message à tous les clients (y compris l'émetteur)
+    io.emit('message', msg);
+  });
+  socket.on('disconnect', ()=> console.log('Client déconnecté'));
+});
+
+server.listen(3000, ()=> console.log('Serveur sur http://localhost:3000'));</code></pre>
+
+    <div class="explain">
+      <strong>Explication pratique :</strong>
+      <ul>
+        <li><code>http.createServer(...)</code> : on utilise le module <code>http</code> natif pour servir des fichiers. Simple et suffisant pour un TP.</li>
+        <li>On calcule le <code>mime</code> à partir de l'extension pour que le navigateur interprète correctement.</li>
+        <li><code>new Server(server)</code> : attache socket.io au serveur HTTP existant (socket.io utilise WebSocket ou fallback).</li>
+        <li><code>io.on('connection', socket =&gt; ...)</code> : s'exécute quand un client se connecte. <code>socket</code> représente la connexion de ce client.</li>
+        <li><code>io.emit('message', msg)</code> : envoie le message à tous les clients. Si tu veux exclure l'émetteur, utiliser <code>socket.broadcast.emit</code>.</li>
+      </ul>
+    </div>
+
+    <div class="note"><strong>Côté client (extrait)</strong> — inclure dans ta page :<br>
+<pre><code>&lt;script src="/socket.io/socket.io.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const socket = io(); // crée la connexion
+  socket.on('message', msg =&gt; console.log('reçu', msg));
+  socket.emit('message', 'bonjour');
+&lt;/script&gt;</code></pre></div>
+
+    <div class="ret"><strong>À retenir :</strong> socket.io simplifie la comms temps réel. Le serveur HTTP peut servir fichiers ET gérer socket.io sur le même port.</div>
+  </section>
+
+  <!-- SECTION 3 -->
+  <section class="box" id="workers">
+    <h2>3) Web Workers — exécution parallèle (UI non bloquée)</h2>
+    <p class="small">But : exécuter des tâches lourdes (calcul, fetch, traitement) sans bloquer le thread principal (UI).</p>
+
+    <div class="code-title">Worker : somme 1..N (fichier : <code>calcul-long-worker.js</code>)</div>
+    <pre><code>// calcul-long-worker.js
+self.onmessage = function(e){
+  const n = e.data;        // on reçoit la valeur N depuis la page
+  let total = 0;
+  for(let i=1;i<=n;i++) total += i; // calcul intensif
+  self.postMessage(total); // on renvoie le résultat au main thread
+  self.close();            // le worker se termine proprement
+};</code></pre>
+
+    <div class="explain">
+      <strong>Comment l'utiliser (côté page) :</strong>
+      <pre><code>const w = new Worker('calcul-long-worker.js');
+w.postMessage(100000000);          // demande le calcul
+w.onmessage = e =&gt; console.log(e.data); // récupère le résultat</code></pre>
+
+      <p class="small">Points clefs :</p>
+      <ul>
+        <li>Le Worker n'a pas accès au DOM. Il fonctionne en isolation.</li>
+        <li>Communication : <code>postMessage</code> / <code>onmessage</code>.</li>
+        <li>Pense à <code>worker.terminate()</code> côté main si tu veux arrêter avant la fin.</li>
+      </ul>
+    </div>
+
+    <div class="code-title">Worker : charger une image (fichier : <code>image-loader.worker.js</code>)</div>
+    <pre><code>// image-loader.worker.js
+self.onmessage = async function(e){
+  try {
+    const url = e.data;
+    const res = await fetch(url);     // on peut fetch depuis un worker
+    const blob = await res.blob();
+    // transfère le blob au main thread ; le second argument permet d'optimiser (transferable)
+    self.postMessage({ok:true, blob}, [blob]);
+  } catch(err) {
+    self.postMessage({ok:false, error:String(err)});
+  }
+};</code></pre>
+
+    <div class="explain">
+      <p>Dans la page, reçois le blob et crée une URL pour l'image :</p>
+      <pre><code>worker.onmessage = e =&gt; {
+  if(e.data.ok){
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(e.data.blob);
+    document.body.appendChild(img);
+  }
+}</code></pre>
+      <p class="small">Pourquoi utiliser un Worker pour charger une image ? Si tu as beaucoup d'images à decoder ou retravailler (ex : canvas), le Worker évite de bloquer l'UI.</p>
+    </div>
+
+    <div class="ret"><strong>À retenir :</strong> Web Worker = thread JS séparé, pas de DOM, utile pour calculs/fetch lourds. Communication via messages. Fermer le worker quand fini.</div>
+  </section>
+
+  <!-- SECTION 4 -->
+  <section class="box" id="shared-worker">
+    <h2>4) Shared Worker — état partagé entre onglets</h2>
+    <p class="small">But : centraliser une logique/état (ex : chat entre onglets, score global) accessible depuis plusieurs onglets d'une même origine.</p>
+
+    <div class="code-title">Shared Worker (fichier : <code>shared-game.js</code>)</div>
+    <pre><code>// shared-game.js
+const ports = []; // liste des ports connectés (chaque onglet a un port)
+
+onconnect = function(e){
+  const port = e.ports[0];
+  ports.push(port);
+  port.postMessage({type:'info', text:'Bienvenue au SharedWorker'});
+
+  port.onmessage = function(ev){
+    const {type, payload} = ev.data || {};
+    if(type === 'message'){ broadcast({type:'message', payload}); }
+    if(type === 'generate'){ // exemple : generation et réponse au port qui a demandé
+      const n = Math.floor(Math.random()*100);
+      port.postMessage({type:'generated', payload:n});
+    }
+  };
+};
+
+function broadcast(msg){
+  for(const p of ports) p.postMessage(msg);
+}</code></pre>
+
+    <div class="explain">
+      <p class="small">Côté client :</p>
+      <pre><code>const sw = new SharedWorker('shared-game.js');
+sw.port.start(); // démarrer le port
+sw.port.onmessage = e =&gt; console.log('shared:', e.data);
+sw.port.postMessage({type:'message', payload:'salut onglet A'});</code></pre>
+
+      <p class="small">Points importants :</p>
+      <ul>
+        <li>Le Shared Worker expose <code>onconnect</code>. Chaque connexion reçoit un <code>port</code> dans <code>e.ports[0]</code>.</li>
+        <li>Le worker garde son état (ici : array <code>ports</code>) et peut diffuser (broadcast) à tous les ports.</li>
+        <li>Idéal pour synchroniser plusieurs onglets sans serveur externe.</li>
+        <li>Attention : Shared Worker n'est pas disponible dans tous les environnements (vérifier compatibilité navigateur).</li>
+      </ul>
+    </div>
+
+    <div class="ret"><strong>À retenir :</strong> Shared Worker centralise un état/logiciel pour plusieurs onglets. Communication via <code>port.postMessage</code> et <code>port.onmessage</code>. Le worker reste en mémoire tant qu'il y a au moins un port connecté.</div>
+  </section>
+
+  <!-- SECTION 5 -->
+  <section class="box" id="debug">
+    <h2>5) Debug & bonnes pratiques (très important)</h2>
+    <ul>
+      <li>Nettoyer les timers/listeners : utiliser <code>disconnectedCallback</code> dans les Web Components et <code>beforeunload</code> si tu relies des listeners globaux.</li>
+      <li>Limiter la taille des messages entre threads ; envoyer des données sérialisables (ou transferables comme ArrayBuffer, Blob) pour de la perf.</li>
+      <li>Pour socket.io, log utile : afficher l'id du socket et les événements reçus pour suivre qui parle à qui.</li>
+      <li>Tester : ouvrir plusieurs onglets pour valider le Shared Worker. Ouvrir la console pour voir les messages.</li>
+    </ul>
+  </section>
+
+  <!-- SECTION 6 -->
+  <section class="box" id="summary">
+    <h2>6) Récapitulatif rapide</h2>
+    <ul>
+      <li><strong>Custom Element</strong> : encapsule UI + logique. Shadow DOM protège le CSS. <em>Use case</em> : widgets réutilisables.</li>
+      <li><strong>Node.js + socket.io</strong> : serveur + WebSocket pour le temps réel. <em>Use case</em> : chat, multi-jeu.</li>
+      <li><strong>Web Worker</strong> : thread isolé pour tâches lourdes. Pas de DOM. Communication par messages.</li>
+      <li><strong>Shared Worker</strong> : état/logiciel partagé entre onglets, utile pour synchronisation locale sans serveur.</li>
+    </ul>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="margin-top:18px;font-size:13px;color:#444">
+    <div>Fichier minimaliste corrigé — les blocs de code s'affichent maintenant correctement. Si tu veux, je peux :</div>
+    <ol>
+      <li>Te fournir les fichiers prêts à coller (<code>server.js</code>, workers, composants) en un bloc — dis <code>Fichiers</code>.</li>
+      <li>Ou produire une version imprimable (PDF) — dis <code>PDF</code>.</li>
+    </ol>
+    <div style="margin-top:8px">Réponds : <code>Fichiers</code> ou <code>PDF</code> ou <code>Rien</code>.</div>
+  </footer>
+</div>
+</body>
+</html>
