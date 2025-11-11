@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Exo 4</title>
+    <style>
+        
+        p[is=char-count]::after {
+            content: ' [' attr(data-nb-char) ' caractères]';
+            background-color: yellow;
+            font-size: smaller;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Exercice 4 - char count</h1>
+    <p is="char-count" contenteditable>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed interdum finibus libero, id aliquet ante mollis volutpat. Maecenas suscipit orci non nisi sollicitudin, quis dictum libero commodo. Nulla eget leo non felis volutpat iaculis. Donec vel dolor imperdiet, suscipit erat in, dictum felis. Donec eu orci est. Mauris aliquet, metus eu pellentesque accumsan, neque nulla consectetur lectus, id scelerisque nibh nunc at sapien. Integer vitae ornare ipsum. Nullam sed magna et lorem convallis semper. Morbi consequat lectus vitae nulla vulputate vestibulum. Aenean porttitor condimentum risus at hendrerit. Maecenas at rutrum arcu. Aenean varius ex lacus, sit amet tincidunt magna finibus nec. In eget rutrum dui. Integer semper metus id congue luctus.</p>
+    <script>
+        // Create a class for the element
+        class CharCount extends HTMLParagraphElement {
+          constructor() {
+            // Always call super first in constructor
+            // Return value from super() is a reference to this element
+            // self est donc cet élément, à utiliser par la suite
+            self = super();
+            this.nbChar()
+            // fonctionnalités spécifiques à CharCount
+            
+          }
+          nbChar(){
+                this.setAttribute("data-nb-char",this.textContent.length)
+            this.addEventListener("input",function(){
+                this.setAttribute("data-nb-char",this.textContent.length)
+                if(this.textContent.length==0){
+                    this.innerHTML="";
+                }   
+            })
+
+          }
+        }
+
+        // Define the new element
+        customElements.define('char-count', CharCount, { extends: 'p' });
+
+    </script>
+</body>
+</html>

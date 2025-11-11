@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!-- saved from url=(0075)https://mdn.github.io/web-components-examples/expanding-list-web-component/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <title>Expanding list web component</title>
+    <style>
+      ul {
+        list-style-type: none;
+      }
+
+      li::before {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        margin-right: 0.25rem;
+        content: "";
+      }
+
+      .open::before,
+      .closed::before {
+        background-size: 1rem 1rem;
+        position: relative;
+        top: 0.25rem;
+        opacity: 0.3;
+      }
+
+      .open::before {
+        background-image: url(img/down.png);
+      }
+
+      .closed::before {
+        background-image: url(img/right.png);
+      }
+
+      .closed .closed::before,
+      .closed .open::before {
+        display: none;
+      }
+    </style>
+    <script src="./exo6_files/main.js" defer=""></script>
+  </head>
+  <body>
+    <h1>Expanding list web component</h1>
+    <ul is="expanding-list">
+      <li class="closed"><span style="cursor: pointer;">
+        UK
+        </span><ul style="display: none;">
+          <li class="closed"><span style="cursor: pointer;">
+            Yorkshire
+            </span><ul style="display: none;">
+              <li class="closed"><span style="cursor: pointer;">
+                Leeds
+                </span><ul style="display: none;">
+                  <li>Train station</li>
+                  <li>Town hall</li>
+                  <li>Headrow</li>
+                </ul>
+              </li>
+              <li>Bradford</li>
+              <li>Hull</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li class="closed"><span style="cursor: pointer;">
+        USA
+        </span><ul style="display: none;">
+          <li class="closed"><span style="cursor: pointer;">
+            California
+            </span><ul style="display: none;">
+              <li>Los Angeles</li>
+              <li>San Francisco</li>
+              <li>Berkeley</li>
+            </ul>
+          </li>
+          <li>Nevada</li>
+          <li>Oregon</li>
+        </ul>
+      </li>
+    </ul>
+
+    <ul>
+      <li>Not</li>
+      <li>an</li>
+      <li>expanding</li>
+      <li>list</li>
+    </ul>
+  
+
+</body></html>

@@ -295,6 +295,149 @@ sw.port.postMessage({type:'message', payload:'salut onglet A'});</code></pre>
     </ul>
   </section>
 
+<h2>📦 Le DOM caché (Shadow DOM)</h2>
+
+<p>Le DOM caché, ou <strong>Shadow DOM</strong>, permet de créer une zone isolée dans le HTML. 
+C’est un peu comme un “mini-document HTML” à l’intérieur d’un élément, invisible et protégé du reste de la page.</p>
+
+<h3>🌱 1. Création d’un Shadow DOM</h3>
+<p>Pour créer un Shadow DOM, on appelle la méthode <code>attachShadow()</code> sur un élément personnalisé :</p>
+
+<pre><code>&lt;script&gt;
+class MaCarte extends HTMLElement {
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: "open" }); // crée le DOM caché
+    shadow.innerHTML = `
+      &lt;style&gt;
+        .carte { border: 2px solid #333; padding: 10px; border-radius: 10px; }
+      &lt;/style&gt;
+      &lt;div class="carte"&gt;
+        &lt;h3&gt;Carte secrète&lt;/h3&gt;
+        &lt;p&gt;Ceci est isolé du reste du DOM !&lt;/p&gt;
+      &lt;/div&gt;
+    `;
+  }
+}
+customElements.define("ma-carte", MaCarte);
+&lt;/script&gt;
+
+&lt;ma-carte&gt;&lt;/ma-carte&gt;
+</code></pre>
+
+<p>🧠 <strong>Comment ça marche :</strong> le contenu du shadow DOM est “encapsulé”. 
+Le CSS extérieur ne le modifie pas et son propre CSS ne déborde pas sur la page. 
+Seul le code interne au Shadow DOM peut accéder à ses éléments.</p>
+
+<hr>
+
+<h3>🧩 2. Les slots — zones d’insertion dynamiques</h3>
+
+<p>Les <code>&lt;slot&gt;</code> servent à laisser une “ouverture” dans le Shadow DOM pour que le contenu de la balise parent s’y insère.</p>
+
+<pre><code>&lt;template id="carte-template"&gt;
+  &lt;style&gt;
+    .boite { border: 1px solid gray; padding: 8px; border-radius: 5px; }
+  &lt;/style&gt;
+  &lt;div class="boite"&gt;
+    &lt;slot name="titre"&gt;&lt;/slot&gt;
+    &lt;slot name="contenu"&gt;&lt;/slot&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+class CarteSlot extends HTMLElement {
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: "open" });
+    const template = document.getElementById("carte-template").content.cloneNode(true);
+    shadow.appendChild(template);
+  }
+}
+customElements.define("carte-slot", CarteSlot);
+&lt;/script&gt;
+
+&lt;carte-slot&gt;
+  &lt;h2 slot="titre"&gt;Bonjour !&lt;/h2&gt;
+  &lt;p slot="contenu"&gt;Ceci est inséré via un slot.&lt;/p&gt;
+&lt;/carte-slot&gt;
+</code></pre>
+
+<p>💡 <strong>À retenir :</strong> les slots permettent de garder la structure fermée du Shadow DOM tout en rendant certains endroits personnalisables depuis l’extérieur.</p>
+
+<hr>
+
+<h3>🧱 3. Encapsulation et sécurité</h3>
+<p>Le Shadow DOM est très utile pour créer des <strong>Web Components</strong> réutilisables, comme des boutons stylés, des menus ou des widgets complets, sans risquer que les styles se mélangent avec le reste du site.</p>
+
+<pre><code>&lt;script&gt;
+class BoutonSecret extends HTMLElement {
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: "open" });
+    const bouton = document.createElement("button");
+    bouton.textContent = "Clique-moi";
+    bouton.onclick = () =&gt; alert("Shadow DOM activé !");
+    shadow.appendChild(bouton);
+  }
+}
+customElements.define("bouton-secret", BoutonSecret);
+&lt;/script&gt;
+
+&lt;bouton-secret&gt;&lt;/bouton-secret&gt;
+</code></pre>
+
+<p>🧠 <strong>Comment ça marche :</strong> même si tu ajoutes un <code>button { background: red }</code> dans ton CSS global, ce bouton ne changera pas : il vit dans son monde isolé.</p>
+
+<hr>
+
+<h3>🧭 4. Exemple complet (inspiré de tes exercices)</h3>
+
+<p>Voici un exemple inspiré de l’exercice 6 : un composant qui affiche l’heure en temps réel grâce au DOM caché.</p>
+
+<pre><code>&lt;script&gt;
+class HorlogeCachee extends HTMLElement {
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: "open" });
+    const container = document.createElement("div");
+    const style = document.createElement("style");
+    style.textContent = `
+      div { font-family: monospace; color: purple; }
+    `;
+    shadow.append(style, container);
+
+    const update = () =&gt; container.textContent = new Date().toLocaleTimeString();
+    update();
+    setInterval(update, 1000);
+  }
+}
+customElements.define("horloge-cachee", HorlogeCachee);
+&lt;/script&gt;
+
+&lt;horloge-cachee&gt;&lt;/horloge-cachee&gt;
+</code></pre>
+
+<p>💡 <strong>À retenir :</strong> ce composant ne dépend d’aucun autre code sur la page. 
+Tu peux le copier-coller dans n’importe quel projet, il fonctionnera pareil.</p>
+
+<hr>
+
+<h3>📊 5. Schéma récapitulatif</h3>
+
+<pre>
+[ Page principale ]
+       │
+       ▼
+[ Custom Element ] -- utilise --> [ Shadow DOM ]
+       │                                │
+       │                                ├── Contenu isolé
+       │                                ├── Style interne
+       │                                └── Slots (zones ouvertes)
+</pre>
+
+<p>Le Shadow DOM est donc un outil clé pour créer des composants **indépendants, réutilisables et protégés**.</p>
+
   <!-- FOOTER -->
   <footer style="margin-top:18px;font-size:13px;color:#444">
     <div>Fichier minimaliste corrigé — les blocs de code s'affichent maintenant correctement. Si tu veux, je peux :</div>

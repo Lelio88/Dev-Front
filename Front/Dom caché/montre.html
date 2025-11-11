@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <body>
+    <montre-opt3 mode="DH"></montre-opt3>
+    <montre-opt3 mode="R"></montre-opt3>
+    <montre-opt3 mode="C"></montre-opt3>
+
+  </body>
+
+  <script>
+    class Montre extends HTMLElement {
+      constructor() {
+        super();
+        this.intervalId = null;
+        this.chronoStop = false;
+        this.minuteurStop = false;
+        this.minStart = "";
+        this.secStart = "";
+        this.shadow = null;
+      }
+
+      connectedCallback() {
+        let mode = this.getAttribute("mode") || "DH";
+        this.shadow = this.attachShadow({ mode: "open" });
+        let style = document.createElement("style");
+        style.textContent = `
+      .montre {
+        border: 2px solid #333;
+        border-radius: 8px;
+        padding: 24px 16px;
+        max-width: 340px;
+        margin: 32px auto;
+        background: #fafafa;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      }
+
+      .mode_container {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 18px;
+        justify-content: center;
+      }
+
+      .mode_container button {
+        padding: 8px 18px;
+        border: 1px solid #333;
+        border-radius: 4px;
+        background: #fff;
+        color: #333;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .mode_container button:disabled {
+        background: green;
+        color: white;
+        cursor: default;
+      }
+
+      .montre-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+      }
+
+      .cadran {
+        font-family: 'Consolas', monospace;
+        font-size: 1.3rem;
+        margin-bottom: 12px;
+        text-align: center;
+        color: #222;
+      }
+
+      .cadranButton button {
+        margin: 0 6px;
+        padding: 6px 14px;
+        border: 1px solid #333;
+        border-radius: 4px;
+        background: #fff;
+        color: #333;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .cadranButton button:disabled {
+        background: #e0e0e0;
+        color: #888;
+        cursor: default;
+      }
+
+      input.minute, input.seconde {
+        width: 38px;
+        padding: 4px;
+        font-size: 1rem;
+        text-align: center;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+        margin: 0 2px;
+      }
+        `;
+
+        this.shadow.innerHTML = `
+            <div class="montre">
+            <div class="mode_container">
+            <button class="btn-dh">Date/Heure</button>
+            <button class="btn-chrono">Chrono</button>
+            <button class="btn-rebours">Rebours</button>
+            </div>
+            <div class="montre-container">
+            <div class="cadran"></div>
+            <div class="cadranButton"></div></div></div>
+        `;
+        this.shadow.appendChild(style);
+
+        const cadran = this.shadow.querySelector(".cadran");
+        const btnChrono = this.shadow.querySelector(".btn-chrono");
+        const btnDH = this.shadow.querySelector(".btn-dh");
+        const btnRebours = this.shadow.querySelector(".btn-rebours");
+        if(mode === "C") {
+          btnChrono.setAttribute("disabled", "true");
+        } else if(mode === "R") {
+          btnRebours.setAttribute("disabled", "true");
+        } else {
+          btnDH.setAttribute("disabled", "true");
+        }
+
+        btnChrono.addEventListener("click", () => {
+          this.setAttribute("mode", "C");
+          btnChrono.setAttribute("disabled", "true");
+          btnDH.removeAttribute("disabled");
+          btnRebours.removeAttribute("disabled");
+          this.updateMode("C");
+        });
+
+        btnRebours.addEventListener("click", () => {
+          this.setAttribute("mode", "R");
+          btnRebours.setAttribute("disabled", "true");
+          btnDH.removeAttribute("disabled");
+          btnChrono.removeAttribute("disabled");
+          this.updateMode("R");
+        });
+
+        btnDH.addEventListener("click", () => {
+          this.setAttribute("mode", "DH");
+          btnDH.setAttribute("disabled", "true");
+          btnChrono.removeAttribute("disabled");
+          btnRebours.removeAttribute("disabled");
+          this.updateMode("DH");
+        });
+
+        this.updateMode(mode);
+      }
+
+      updateMode(mode) {
+        const cadran = this.shadow.querySelector(".cadran");
+        const cadranButton = this.shadow.querySelector(".cadranButton");
+        let delai = 0;
+        this.chronoStop = false;
+        this.minuteurStop = false;
+        if (this.intervalId) {
+          clearInterval(this.intervalId);
+          this.intervalId = null;
+        }
+
+        if (mode === "C") {
+          this.chrono();
+        } else if (mode === "R") {
+          this.minuteur();
+        } else if (mode === "DH") {
+          this.intervalId = setInterval(() => {
+            delai = 1000;
+            let date = new Date();
+            let heures = date.getHours().toString().padStart(2, "0");
+            let minutes = date.getMinutes().toString().padStart(2, "0");
+            let secondes = date.getSeconds().toString().padStart(2, "0");
+            let jour = date.getDate().toString().padStart(2, "0");
+            let mois = (date.getMonth() + 1).toString().padStart(2, "0");
+            let annee = date.getFullYear();
+            cadran.innerHTML = `${jour}/${mois}/${annee} ${heures}:${minutes}:${secondes}`;
+            cadranButton.innerHTML = "";
+          }, delai);
+        }
+      }
+      chrono(jour = "0", heure = "00", minute = "00", seconde = "00") {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+        const cadran = this.shadow.querySelector(".cadran");
+        const cadranButton = this.shadow.querySelector(".cadranButton");
+        cadran.innerHTML = `<div class='chrono'><span class='jour'>${jour}</span> day
+                <span class='heure'>${heure}</span>:<span class='minute'>${minute}</span>:
+                <span class='seconde'>${seconde}</span></div>`;
+        cadranButton.innerHTML = `<button class='lancer'>Start</button>`;
+        let btnLancer = cadranButton.querySelector(".lancer");
+        btnLancer.addEventListener("click", () => {
+          this.lancerChrono(cadranButton, cadran);
+        });
+      }
+      lancerChrono(cadranButton, cadran) {
+        cadranButton.innerHTML = `<button class='pause'>Pause</button>
+            <button class='stop'>Stop</button><button class='reset'>Reset</button>`;
+        if (this.chronoStop) {
+          cadran.innerHTML = `<div class='chrono'><span class='jour'>0</span> day
+                <span class='heure'>00</span>:<span class='minute'>00</span>:
+                <span class='seconde'>00</span></div>`;
+          this.chronoStop = false;
+        }
+
+        let btnPause = cadranButton.querySelector(".pause");
+        let btnReset = cadranButton.querySelector(".reset");
+        let btnStop = cadranButton.querySelector(".stop");
+        this.intervalId = setInterval(() => {
+          let jour = cadran.querySelector(".jour");
+          let heure = cadran.querySelector(".heure");
+          let minute = cadran.querySelector(".minute");
+          let seconde = cadran.querySelector(".seconde");
+          seconde.textContent = (parseInt(seconde.textContent) + 1)
+            .toString()
+            .padStart(2, "0");
+          if (parseInt(seconde.textContent) === 60) {
+            seconde.textContent = "00";
+            minute.textContent = (parseInt(minute.textContent) + 1)
+              .toString()
+              .padStart(2, "0");
+          }
+          if (parseInt(minute.textContent) === 60) {
+            minute.textContent = "00";
+            heure.textContent = (parseInt(heure.textContent) + 1)
+              .toString()
+              .padStart(2, "0");
+          }
+          if (parseInt(heure.textContent) === 24) {
+            heure.textContent = "00";
+            jour.textContent = parseInt(jour.textContent) + 1;
+          }
+        }, 1000);
+        btnPause.addEventListener("click", () => {
+          if (btnPause.textContent === "Pause") {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+            btnPause.textContent = "Start";
+          } else {
+            this.lancerChrono(cadranButton, cadran);
+          }
+        });
+        btnReset.addEventListener("click", () => {
+          clearInterval(this.intervalId);
+          this.intervalId = null;
+          this.chrono();
+        });
+        btnStop.addEventListener("click", () => {
+          clearInterval(this.intervalId);
+          this.intervalId = null;
+          this.chronoStop = true;
+          this.chrono(
+            cadran.querySelector(".jour").textContent,
+            cadran.querySelector(".heure").textContent,
+            cadran.querySelector(".minute").textContent,
+            cadran.querySelector(".seconde").textContent
+          );
+        });
+      }
+      minuteur(min = "", sec = "") {
+        console.log(this.minuteurStop, min, sec);
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+        const cadran = this.shadow.querySelector(".cadran");
+        const cadranButton = this.shadow.querySelector(".cadranButton");
+        if (this.minuteurStop) {
+          console.log("minuteur test");
+          cadran.innerHTML = `<div class='rebours'>
+                <input class='minute' placeholder="00" type="number" value="${min}" >:<input class='seconde'placeholder="00" type="number" value="${sec}"></div>`;
+          this.minuteurStop = false;
+        } else {
+          cadran.innerHTML = `<div class='rebours'>
+                <input class='minute' placeholder="00" type="number" >:<input class='seconde'placeholder="00" type="number"></div>`;
+        }
+
+        cadranButton.innerHTML = `<button class='start'>Start</button>`;
+        let btnStart = cadranButton.querySelector(".start");
+        let minute = cadran.querySelector(".minute");
+        let seconde = cadran.querySelector(".seconde");
+        minute.addEventListener("input", () => {
+          minute.value = minute.value.replace(/\D/g, "");
+          if (minute.value.length > 2) {
+            minute.value = minute.value.slice(0, 2);
+          }
+          if (parseInt(minute.value) > 60) {
+            minute.value = 59;
+          }
+
+          this.minStart = minute.value;
+          console.log(this.minStart, " minute");
+        });
+        seconde.addEventListener("input", () => {
+          seconde.value = seconde.value.replace(/\D/g, "");
+
+          if (seconde.value.length > 2) {
+            seconde.value = seconde.value.slice(0, 2);
+          }
+          if (parseInt(seconde.value) > 60) {
+            seconde.value = 59;
+          }
+          this.secStart = seconde.value;
+        });
+        btnStart.addEventListener("click", () => {
+          if (
+            (minute.value === "" && seconde.value === "") ||
+            (parseInt(minute.value) === 0 && parseInt(seconde.value) === 0)
+          ) {
+            alert("Veuillez entrer un temps valide");
+            return;
+          }
+          this.lancerMinuteur(cadranButton, cadran);
+        });
+      }
+      lancerMinuteur(cadranButton, cadran) {
+        cadranButton.innerHTML = `<button class='pause'>Pause</button>
+            <button class='stop'>Stop</button><button class='reset'>Reset</button>`;
+
+        let btnPause = cadranButton.querySelector(".pause");
+        let btnReset = cadranButton.querySelector(".reset");
+        let btnStop = cadranButton.querySelector(".stop");
+        let minute = cadran.querySelector(".minute");
+        let seconde = cadran.querySelector(".seconde");
+        this.intervalId = setInterval(() => {
+          let min = parseInt(minute.value) || 0;
+          let sec = parseInt(seconde.value) || 0;
+          let totalSeconde = min * 60 + sec;
+          if (totalSeconde <= 0) {
+            alert("Fin du Minuteur");
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+            this.minuteur();
+            return;
+          }
+          totalSeconde -= 1;
+          let m = Math.floor(totalSeconde / 60);
+          let s = totalSeconde % 60;
+
+          minute.value = m.toString().padStart(2, "0");
+          seconde.value = s.toString().padStart(2, "0");
+          if (totalSeconde < 0) {
+            clearInterval(this.intervalId);
+            alert("Fin du minuteur");
+            this.intervalId = null;
+            minute.value = "";
+            seconde.value = "";
+            this.minuteur();
+            return;
+          }
+        }, 1000);
+        btnPause.addEventListener("click", () => {
+          if (btnPause.textContent === "Pause") {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+            btnPause.textContent = "Start";
+          } else {
+            this.lancerMinuteur(cadranButton, cadran);
+          }
+        });
+        btnReset.addEventListener("click", () => {
+          clearInterval(this.intervalId);
+          this.intervalId = null;
+          this.minuteur();
+        });
+        btnStop.addEventListener("click", () => {
+          clearInterval(this.intervalId);
+          this.intervalId = null;
+          this.minuteurStop = true;
+          console.log(this.minStart, this.secStart);
+          this.minuteur(this.minStart, this.secStart);
+        });
+      }
+    }
+
+    customElements.define("montre-opt3", Montre);
+  </script>
+</html>
