@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>WebWorkers 3</title>
+</head>
+<body>
+	<h1>Exo 3 - WebWorkers</h1>
+	<input type="number" id="nb1" name="nb1" value="0"> * <input type="number" id="nb2" name="nb2" value="0"> <button>=</button> <output name="result" for="nb1 nb2">0</output>
+	<script type="text/javascript">
+		console.log("App : coucou")
+		const worker = new Worker("exo3-worker.js");
+		document.querySelector("button").addEventListener("click", () => {
+			const nb1 = parseFloat(document.getElementById("nb1").value);
+			const nb2 = parseFloat(document.getElementById("nb2").value);
+			worker.postMessage({
+				commande: "multiplier",
+				nb1: nb1,
+				nb2: nb2,
+			});
+		});
+
+		worker.addEventListener("message", (message) => {
+			const resultat = message.data.resultat;
+			console.log("App : " + resultat + " reçu");
+			document.querySelector("output").value = resultat;
+		});
+	</script>
+</body>
+</html>

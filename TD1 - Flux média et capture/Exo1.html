@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exo 1</title>
+</head>
+
+<body>
+    <script>
+        // Vérifier le support et lister les sources
+        if (!navigator.mediaDevices?.enumerateDevices) {
+            console.log("enumerateDevices() not supported.");
+        } else {
+            navigator.mediaDevices.enumerateDevices()
+                .then((devices) => {
+                    devices.forEach((device) => {
+                        console.log(`${device.kind}: ${device.label},`
+                            + ` id = ${device.deviceId}`);
+                    });
+                })
+                .catch((err) => { console.error(`${err.name}: ${err.message}`); });
+        }
+        // Lister les propriétés contraignables acceptées par le navigateur
+        const constraints = navigator.mediaDevices.getSupportedConstraints();
+        for (const constraint of Object.keys(constraints))
+            console.log('contrainte ' + constraint);
+        // Produire un flux vidéo
+        const constraints2 = { audio: false, video: true };
+        navigator.mediaDevices.getUserMedia(constraints2)
+            .then((stream) => { /* utiliser le flux */ })
+            .catch((err) => { /* gérer les erreurs */ });
+        // Produire un flux vidéo (sans audio) et le diffuser
+        const constraints3 = { audio: false, video: true };
+        let video = document.querySelector("video");
+        navigator.mediaDevices.getUserMedia(constraints3)
+            .then((stream) => { /* diffuser le flux */
+                video.srcObject = stream;
+                video.onloadedmetadata = (e) => { video.play(); };
+            })
+            .catch((err) => { /* gérer les erreurs */ });
+
+    </script>
+</body>
+
+</html>

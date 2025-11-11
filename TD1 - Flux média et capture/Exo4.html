@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exo 4</title>
+</head>
+
+<body>
+    <h1>Exercice 4</h1>
+    <h2>Diffusion d'un flux vidéo</h2>
+        <video id="video" style="border: 1px solid black;">Flux vidéo non-disponible.</video>
+    <script>
+        // Produire un flux vidéo (sans audio) et le diffuser
+        const constraints = { audio: false, video: true };
+        let video = document.querySelector("video");
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then((stream) => { /* diffuser le flux */
+                video.srcObject = stream;
+                video.onloadedmetadata = (e) => {
+                    if (video.hasAttribute('width')) {
+                        const width = video.getAttribute('width');
+                        const height = width * video.videoHeight / video.videoWidth;
+                        video.setAttribute('height', height);
+                    }
+                    else if (video.hasAttribute('height')) {
+                        const height = video.getAttribute('height');
+                        const width = height * video.videoWidth / video.videoHeight;
+                        video.setAttribute('width', width);
+                    }
+                    video.play();
+                };
+            })
+            .catch((err) => { /* gérer les erreurs */ });
+            // Compléter le code pour afficher dans la console, pour chaque piste composant le flux, son type (kind), son label (label) et son identifiant (id) ainsi que les propriétés contraignables avec leurs valeurs acceptables (getCapabilities) et leurs valeurs courantes (getSettings)
+            navigator.mediaDevices.getUserMedia(constraints)
+            .then((stream) => {
+                stream.getTracks().forEach((track) => {
+                    console.log(`Type: ${track.kind}`);
+                    console.log(`Label: ${track.label}`);
+                    console.log(`ID: ${track.id}`);
+                    console.log('Capabilities:', track.getCapabilities());
+                    console.log('Settings:', track.getSettings());
+                });
+            })
+            .catch((err) => { /* gérer les erreurs */ });
+
+    </script>
+</body>
+
+</html>

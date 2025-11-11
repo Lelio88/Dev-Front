@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exo 5</title>
+</head>
+
+<body>
+    <h1>Exercice 5</h1>
+    <h2>Diffusion d'un flux vidéo</h2>
+    <video id="video" style="border: 1px solid black;">Flux vidéo non-disponible.</video>
+    <br>
+    <button id="startButton">Démarrer la diffusion</button>
+    <button id="stopButton" disabled>Arrêter la diffusion</button>
+    <button id="pauseButton" disabled>Mettre en pause</button>
+    <button id="pleinEcranButton" disabled>Plein écran</button>
+    <br>
+    <p id="videoInfo"></p>
+    <script>
+        // Produire un flux vidéo (sans audio) et le diffuser
+        const constraints = { audio: false, video: true };
+        let video = document.querySelector("video");
+        // Création des boutons
+        const startButton = document.getElementById("startButton");
+        const stopButton = document.getElementById("stopButton");
+        const pauseButton = document.getElementById("pauseButton");
+        const pleinEcranButton = document.getElementById("pleinEcranButton");
+        // Bouton start
+        startButton.onclick = () => {
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then((stream) => { /* diffuser le flux */
+                    video.srcObject = stream;
+                    video.onloadedmetadata = (e) => {
+                        if (video.hasAttribute('width')) {
+                            const width = video.getAttribute('width');
+                            const height = width * video.videoHeight / video.videoWidth;
+                            video.setAttribute('height', height);
+                        }
+                        else if (video.hasAttribute('height')) {
+                            const height = video.getAttribute('height');
+                            const width = height * video.videoWidth / video.videoHeight;
+                            video.setAttribute('width', width);
+                        }
+                        video.play();
+                    };
+                })
+                .catch((err) => { /* gérer les erreurs */ });
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            pauseButton.disabled = false;
+            pleinEcranButton.disabled = false;
+        };
+        // Bouton pause
+        pauseButton.onclick = () => {
+            if (video.paused) {
+                video.play();
+                pauseButton.textContent = "Mettre en pause";
+            } else {
+                video.pause();
+                pauseButton.textContent = "Reprendre";
+            }
+        };
+        // Bouton stop
+        stopButton.onclick = () => {
+            let stream = video.srcObject;
+            let tracks = stream.getTracks();
+            tracks.forEach((track) => {
+                track.stop();
+            });
+            video.srcObject = null;
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            pauseButton.disabled = true;
+            pleinEcranButton.disabled = true;
+            pauseButton.textContent = "Mettre en pause";
+        };
+        // Bouton plein écran
+        pleinEcranButton.onclick = () => {
+            if (video.requestFullscreen) {
+                video.requestFullscreen();
+            }
+        };
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then((stream) => {
+                stream.getTracks().forEach((track) => {
+                    console.log(`Type: ${track.kind}`);
+                    console.log(`Label: ${track.label}`);
+                    console.log(`ID: ${track.id}`);
+                    console.log('Capabilities:', track.getCapabilities());
+                    console.log('Settings:', track.getSettings());
+                    document.getElementById("videoInfo").innerText = `Type: ${track.kind}\nLabel: ${track.label}\nID: ${track.id}\nCapabilities: ${JSON.stringify(track.getCapabilities())}\nSettings: ${JSON.stringify(track.getSettings())}`;
+                });
+            })
+            .catch((err) => { /* gérer les erreurs */ });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Chat</title>
+</head>
+<body>
+    <h1>CHAT</h1>
+
+    <div id="websocket">
+        <div id="divPseudo">
+            <h2>Rentrez votre pseudo pour accéder au chat</h2>
+            <input type="text" id="username" placeholder="Pseudo" required />
+            <button id="boutonPseudo">Envoyer</button>
+        </div>
+
+        <div id="divChat" style="display:none;">
+            <div id="messages" style="border:1px solid #ddd; padding:8px; height:200px; overflow:auto;"></div>
+            <p id="typingIndicator" style="font-style:italic; color:gray; display:none;"></p>
+            <form id="chatbox">
+                <input type="text" id="message" placeholder="Votre message" required />
+                <input type="submit" value="Envoyer" />
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let username = "";
+        let typingTimeout;
+
+        // -- Pseudo --
+        document.getElementById('boutonPseudo').addEventListener('click', () => {
+            username = document.getElementById('username').value.trim();
+            if (!username) return alert('Choisis un pseudo');
+            socket.emit('setUsername', username);
+            document.getElementById('divPseudo').style.display = 'none';
+            document.getElementById('divChat').style.display = 'block';
+        });
+
+        // -- Réception des messages --
+        socket.on('message', data => afficheMessage(data.username, data.message));
+
+        // -- Indicateur "X est en train d’écrire" --
+        socket.on('typing', (user) => {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.textContent = `💬 ${user} est en train d’écrire...`;
+            indicator.style.display = 'block';
+        });
+
+        socket.on('stopTyping', (user) => {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'none';
+        });
+
+        // -- Gestion de la frappe --
+        const messageInput = document.getElementById('message');
+        messageInput.addEventListener('input', () => {
+            socket.emit('typing');
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                socket.emit('stopTyping');
+            }, 3000);
+        });
+
+        // -- Envoi de message --
+        const form = document.getElementById('chatbox');
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            const msg = messageInput.value.trim();
+            if (!msg) return;
+            socket.emit('message', { username, message: msg });
+            afficheMessage(username, msg);
+            socket.emit('stopTyping');
+            form.reset();
+        });
+
+        function afficheMessage(user, msg) {
+            const p = document.createElement('p');
+            if (user === 'Serveur') p.style.fontStyle = 'italic';
+            p.innerHTML = `<strong>${user}</strong> : ${msg}`;
+            document.getElementById('messages').appendChild(p);
+            const box = document.getElementById('messages');
+            box.scrollTop = box.scrollHeight;
+        }
+    </script>
+</body>
+</html>

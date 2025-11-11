@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Détection et suivi des mains</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <h1>Détection et suivi des mains</h1>
+    <section id="demos" class="invisible">
+        <h2>Demo: Webcam continuous hands landmarks detection</h2>
+        <div id="liveView" class="videoView">
+            <button id="track" class="mdc-button mdc-button--raised">
+                <span class="mdc-button__ripple"></span>
+                <span class="mdc-button__label">ACTIVER LE TRACKING DE DESSIN</span>
+            </button>
+            <div style="margin-top: 10px;">
+                <select id="mains">
+                    <option value="right">Gauche</option>
+                    <option value="left">Droite</option>
+                </select>
+                <input type="number" id="rayon" value="3" min="1" max="10" step="1">
+                <select id="couleur">
+                    <option value="red">Rouge</option>
+                    <option value="green">Verte</option>
+                    <option value="blue">Bleue</option>
+                    <option value="yellow">Jaune</option>
+                    <option value="purple">Violette</option>
+                    <option value="black">Noire</option>
+                </select>
+            </div>
+            <!-- Contrôles -->
+            <div style="margin-top: 10px;">
+                <button id="toggleVideo">Masquer vidéo</button>
+                <input type="color" id="bgColor" value="#000000">
+                <button id="fullscreenBtn">Plein écran</button>
+            </div>
+            <div id="canvasContainer" style="position: relative; transform: scaleX(-1);">
+                <canvas width="480" height="360" id="canvasbg"
+                    style="position: absolute; left: 0; top: 0; background-color: black;"></canvas>
+                <!-- Vidéo -->
+                <video width="480" id="webcam" style="position: absolute;" autoplay playsinline></video>
+
+                <!-- Canvas pour les landmarks (effacé à chaque frame) -->
+                <canvas width="480" class="output_canvas" id="canvasLandmarks"
+                    style="position: absolute; left: 0; top: 0;"></canvas>
+
+                <!-- Canvas pour le dessin (jamais effacé automatiquement) -->
+                <canvas width="480" id="canvasDraw" style="position: absolute; left: 0; top: 0;"></canvas>
+            </div>
+        </div>
+    </section>
+    <script type="module" src="./dist/script.js"></script>
+</body>
+
+</html>

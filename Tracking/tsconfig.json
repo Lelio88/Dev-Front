@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es6",                // Version JS générée (ES6 = assez moderne)
+    "module": "es6",                // Pour pouvoir utiliser import/export
+    "strict": false,                // On désactive les règles trop strictes
+    "noEmitOnError": false,         // ⚡ Continue à compiler même avec des erreurs
+    "outDir": "dist",               // Tous les fichiers compilés iront dans "dist/"
+    "rootDir": "src",               // Ton code source est dans "src/"
+    "esModuleInterop": true,        // Compatibilité avec import/export CommonJS
+    "forceConsistentCasingInFileNames": true // Vérifie la casse des noms de fichiers
+  },
+  "include": ["src"],               // Tous tes .ts dans "src" seront compilés
+  "exclude": ["node_modules"]       // Ignore les dépendances
+}

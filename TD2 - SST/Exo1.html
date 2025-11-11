@@ -1,0 +1,54 @@
+<html>
+
+<head>
+    <title>Voice to Text</title>
+</head>
+
+<body>
+    <button id="startButton">Start Voice Input</button>
+    <button id="clear">Clear</button>
+    <select id="language">
+        <option value="en-US">English</option>
+        <option value="fr-FR">Français</option>
+    </select>
+    <div id="output" contentEditable="true">Hello</div>
+</body>
+<script>
+    // Reference to the elements
+    const startButton = document.getElementById("startButton");
+    const outputDiv = document.getElementById("output");
+    const clearButton = document.getElementById("clear");
+
+    // Constants for the language and the default language
+    const LANG = "en-US";
+
+    // Event listeners for the clear button
+    clearButton.addEventListener("click", () => {
+        outputDiv.textContent = "";
+    });
+
+    // Create a new SpeechRecognition object
+    const recognition = new (window.SpeechRecognition ||
+        window.webkitSpeechRecognition ||
+        window.mozSpeechRecognition ||
+        window.msSpeechRecognition)();
+
+    // Set the language of the recognition
+    recognition.lang = LANG;
+
+    // Event listeners for the recognition
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        outputDiv.textContent += ` ${transcript}`;
+    };
+
+    // Event listeners for the start and end of the recognition
+    recognition.onstart = () => startButton.textContent = "Listening...";
+    recognition.onend = () => startButton.textContent = "Start Voice Input";
+    startButton.addEventListener("click", () => recognition.start());
+    document.getElementById("language").addEventListener("change", function() {
+        recognition.lang = this.value;
+    });
+</script>
+
+</html>

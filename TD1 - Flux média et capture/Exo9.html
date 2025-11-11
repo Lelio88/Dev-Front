@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exo 9</title>
+</head>
+
+<body>
+    <h1>Exercice 9</h1>
+    <h2>Diffusion d'un flux vidéo</h2>
+    <div style="display: flex; padding: 10px;">
+        <audio-video style="border: 1px solid black; display: inline-block; padding: 10px;">
+            <video id="video" width="640" height="480" autoplay playsinline></video>
+            <audio id="audio" autoplay style="width: 640px;"></audio>
+            <div style="display: block; width: 100%;">
+                <div style="display: flex;">
+                    <div style="display: flex; flex-direction: column;">
+                        <button id="startButton">Démarrer la diffusion</button>
+                        <button id="pleinEcranButton" disabled>Plein écran</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <button id="pauseVideoButton" disabled>Mettre en pause la vidéo</button>
+                        <button id="stopVideoButton" disabled>Arrêter la diffusion de la vidéo</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <button id="pauseAudioButton" disabled>Mettre en pause l'audio</button>
+                        <button id="stopAudioButton" disabled>Arrêter la diffusion de l'audio</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <button id="screenshotButton" disabled>Prendre une photo</button>
+                        <button id="downloadPhotoButton" disabled>Télécharger la photo</button>
+                    </div>
+                </div>
+                <div style="width: 650px;">
+                    <button id="changeAudioDeviceButton" disabled style="width: 100%;">Changer de source audio</button>
+                </div>
+            </div>
+        </audio-video>
+        <div style="border: 1px solid black; width: 640px; height: 480px;">
+            <canvas id="photoCanvas" style="display: block;">
+
+            </canvas>
+        </div>
+    </div>
+    <script>
+        //Manipulation d'un objet MediaStream
+        const audio = document.getElementById("audio");
+        const video = document.getElementById("video");
+        const constraints = { audio: true, video: { width: 1280, height: 720 } };
+
+        // Création des boutons
+        const startButton = document.getElementById("startButton");
+        const stopVideoButton = document.getElementById("stopVideoButton");
+        const stopAudioButton = document.getElementById("stopAudioButton");
+        const pauseVideoButton = document.getElementById("pauseVideoButton");
+        const pauseAudioButton = document.getElementById("pauseAudioButton");
+        const pleinEcranButton = document.getElementById("pleinEcranButton");
+        let localStream = null;
+        let videoTrack = null;
+        let audioTrack = null;
+        let videoPaused = false;
+        let audioPaused = false;
+        // Démarrer la diffusion
+        startButton.onclick = async () => {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                audio.srcObject = localStream;
+                video.srcObject = localStream;
+                videoTrack = localStream.getVideoTracks()[0];
+                audioTrack = localStream.getAudioTracks()[0];
+                stopVideoButton.disabled = false;
+                stopAudioButton.disabled = false;
+                pauseVideoButton.disabled = false;
+                pauseAudioButton.disabled = false;
+                pleinEcranButton.disabled = false;
+                startButton.disabled = true;
+                changeAudioDeviceButton.disabled = false;
+                screenshotButton.disabled = false;
+                console.log('Using video device: ' + videoTrack.label);
+                console.log('Using audio device: ' + audioTrack.label);
+            } catch (err) {
+                console.error("Error accessing media devices.", err);
+            }
+        };
+        // Arrêter la diffusion de la vidéo
+        stopVideoButton.onclick = () => {
+            let stream = video.srcObject;
+            let tracks = stream.getTracks();
+            tracks.forEach(track => {
+                if (track.kind === 'video') {
+                    track.stop();
+                    localStream.removeTrack(track);
+                }
+            });
+            video.srcObject = null;
+            startButton.disabled = false;
+            stopVideoButton.disabled = true;
+            pauseVideoButton.disabled = true;
+            pleinEcranButton.disabled = true;
+            pauseVideoButton.textContent = "Mettre en pause";
+        };
+        // Arrêter la diffusion de l'audio
+        stopAudioButton.onclick = () => {
+            let stream = audio.srcObject;
+            let tracks = stream.getTracks();
+            tracks.forEach(track => {
+                if (track.kind === 'audio') {
+                    track.stop();
+                    localStream.removeTrack(track);
+                }
+            });
+            audio.srcObject = null;
+            startButton.disabled = false;
+            stopAudioButton.disabled = true;
+            pauseAudioButton.disabled = true;
+            pauseAudioButton.textContent = "Mettre en pause l'audio";
+        };
+        // Mettre en pause la vidéo
+        pauseVideoButton.onclick = () => {
+            if (video.paused) {
+                video.play();
+                pauseVideoButton.textContent = "Mettre en pause";
+            } else {
+                video.pause();
+                pauseVideoButton.textContent = "Reprendre";
+            }
+        };
+        // Mettre en pause l'audio
+        pauseAudioButton.onclick = () => {
+            if (audioTrack) {
+                if (!audioPaused) {
+                    audioTrack.enabled = false;
+                    pauseAudioButton.textContent = "Reprendre l'audio";
+                } else {
+                    audioTrack.enabled = true;
+                    pauseAudioButton.textContent = "Mettre en pause l'audio";
+                }
+                audioPaused = !audioPaused;
+            }
+        };
+        // Plein écran
+        pleinEcranButton.onclick = () => {
+            if (video.requestFullscreen) {
+                video.requestFullscreen();
+            }
+        };
+        // Prendre une photo
+        screenshotButton.onclick = () => {
+            const canvas = document.getElementById('photoCanvas');
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataURL = canvas.toDataURL('image/png');
+            downloadPhotoButton.disabled = false;
+        };
+        // Télécharger la photo avec l'API MediaStream Image Capture
+        const downloadPhotoButton = document.getElementById('downloadPhotoButton');
+        downloadPhotoButton.onclick = () => {
+            const canvas = document.getElementById('photoCanvas');
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'canvas-image.png';
+                a.click();
+                URL.revokeObjectURL(url); // Libérer l'URL après le téléchargement
+            }, 'image/png');
+        };
+
+        // Changer de source audio (chatGPT)
+        changeAudioDeviceButton.onclick = async () => {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                if (audioInputs.length > 1) {
+                    const currentDeviceId = audioTrack ? audioTrack.getSettings().deviceId : null;
+                    let newDeviceId = audioInputs[0].deviceId;
+                    for (let device of audioInputs) {
+                        if (device.deviceId !== currentDeviceId) {
+                            newDeviceId = device.deviceId;
+                            break;
+                        }
+                    }
+                    const newConstraints = { audio: { deviceId: { exact: newDeviceId } }, video: false };
+                    const newStream = await navigator.mediaDevices.getUserMedia(newConstraints);
+                    const newAudioTrack = newStream.getAudioTracks()[0];
+                    localStream.removeTrack(audioTrack);
+                    localStream.addTrack(newAudioTrack);
+                    audio.srcObject = null;
+                    audio.srcObject = localStream;
+                    audioTrack.stop();
+                    audioTrack = newAudioTrack;
+                    console.log('Switched to audio device: ' + audioTrack.label);
+                } else {
+                    console.log('No alternative audio input devices found.');
+                }
+            } catch (err) {
+                console.error("Error changing audio device.", err);
+            }
+        };
+    </script>
+</body>
+
+</html>

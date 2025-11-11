@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Calcul Long</title>
+</head>
+
+<body>
+	<h1>Calcul long</h1>
+	<input type="number" id="nbUpTo" name="nbUpTo" value="1e10"><button id="calculer">calculer</button><button id="stop"
+		disabled>stop</button><button id="terminer" disabled>terminer</button><br>Résultat = <output name="result"
+		for="nbUpTo">0</output>
+	<script type="text/javascript" defer>
+		console.log("App : coucou");
+		const worker = new Worker("calcul-long-worker.js");
+		document.getElementById("calculer").addEventListener("click", () => {
+			const nbUpTo = parseFloat(document.getElementById("nbUpTo").value);
+			worker.postMessage({
+				commande: "calculer",
+				nbUpTo: nbUpTo,
+			});
+		});
+		worker.addEventListener("message", (message) => {
+			if (message.data.start) {
+				console.log("App : calcul démarré");
+				calculer.disabled = true;
+				stop.disabled = false;
+				terminer.disabled = false;
+			}
+			if (message.data.resultat) {
+				const resultat = message.data.resultat;
+				console.log("App : " + resultat + " reçu");
+				calculer.disabled = false;
+				console.log("bouton calculer activé");
+				stop.disabled = true;
+				terminer.disabled = true;
+				document.querySelector("output").value = resultat;
+			}
+			const resultat = message.data.resultat;
+			console.log("App : " + resultat + " reçu");
+			calculer.disabled = false;
+			console.log("bouton calculer activé");
+			stop.disabled = true;
+			document.querySelector("output").value = resultat;
+		});
+		const calculer = document.getElementById("calculer");
+		const stop = document.getElementById("stop");
+		const terminer = document.getElementById('terminer');
+		const result = document.querySelector('body>output');
+	</script>
+</body>
+
+</html>

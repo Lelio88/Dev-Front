@@ -1,0 +1,168 @@
+<html>
+<head>
+    <title>Composant web montre</title>
+</head>
+<body>
+    <h1>Composant web montre</h1>
+    <composant-montre id="composant-montre" mode="date-heure"></composant-montre>
+
+    <button id="mode-date-heure">Date et heure</button>
+    <button id="mode-chrono">Chronomètre</button>
+    <button id="mode-rebours">Compte à rebours</button>
+    <script>
+        class MontrerHeure extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: "open" });
+                this.shadowRoot.innerHTML = `
+        <style>
+            #dateHeure, #chrono, #rebours { display: none; }
+            .visible { display: block !important; } /* <-- le fix */
+            #affichage-chrono, #affichage-rebours, #affichage-date {
+            font-weight: bold;
+            margin-bottom: 10px;
+            }
+            button { margin: 5px; }
+        </style>
+        <!-- Mode Date/Heure -->
+        <div id="dateHeure">
+            <div id="affichage-date"></div>
+        </div>
+        <!-- Mode Chronomètre -->
+        <div id="chrono">
+            <div id="affichage-chrono"></div>
+            <button id="chrono-start">Démarrer</button>
+            <button id="chrono-pause">Pause</button>
+            <button id="chrono-reset">Réinitialiser</button>
+        </div>
+        <!-- Mode Rebours -->
+        <div id="rebours">
+            <div id="affichage-rebours"></div>
+            <input id="rebours-input" type="number" placeholder="Secondes">
+            <button id="rebours-start">Lancer</button>
+            <button id="rebours-reset">Réinitialiser</button>
+        </div>
+        `;
+            }
+            connectedCallback() {
+                const dateHeureDiv = this.shadowRoot.querySelector("#dateHeure");
+                const chronoDiv = this.shadowRoot.querySelector("#chrono");
+                const reboursDiv = this.shadowRoot.querySelector("#rebours");
+                //
+                const affichageDate = this.shadowRoot.querySelector("#affichage-date");
+                const affichageChrono = this.shadowRoot.querySelector("#affichage-chrono");
+                const affichageRebours = this.shadowRoot.querySelector("#affichage-rebours");
+                //
+                const chronoStart = this.shadowRoot.querySelector("#chrono-start");
+                const chronoPause = this.shadowRoot.querySelector("#chrono-pause");
+                const chronoReset = this.shadowRoot.querySelector("#chrono-reset");
+                //
+                const reboursInput = this.shadowRoot.querySelector("#rebours-input");
+                const reboursStart = this.shadowRoot.querySelector("#rebours-start");
+                const reboursReset = this.shadowRoot.querySelector("#rebours-reset");
+                //
+                let seconds = 0;
+                let running = false;
+                let interval = null;
+                let dateInterval = null;
+                const startDateHeure = () => {
+                    clearInterval(dateInterval);
+                    const update = () => {
+                        const now = new Date();
+                        affichageDate.textContent = `Nous sommes le ${now.toLocaleDateString()} et il est ${now.toLocaleTimeString()}`;
+                    };
+                    update();
+                    dateInterval = setInterval(update, 1000);
+                };
+                const updateChrono = () => {
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    affichageChrono.textContent = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+                };
+                const updateRebours = () => {
+                    if (seconds <= 0) {
+                        clearInterval(interval);
+                        running = false;
+                        affichageRebours.textContent = "Temps écoulé !";
+                        alert("Temps écoulé !");
+                    } else {
+                        const mins = Math.floor(seconds / 60);
+                        const secs = seconds % 60;
+                        affichageRebours.textContent = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+                    }
+                };
+                document.getElementById("mode-date-heure").addEventListener("click", () => {
+                    document.getElementById("composant-montre").setAttribute("mode", "date-heure");
+                });
+                document.getElementById("mode-chrono").addEventListener("click", () => {
+                    document.getElementById("composant-montre").setAttribute("mode", "chrono");
+                });
+                document.getElementById("mode-rebours").addEventListener("click", () => {
+                    document.getElementById("composant-montre").setAttribute("mode", "rebours");
+                });
+                chronoStart.addEventListener("click", () => {
+                    if (!running) {
+                        running = true;
+                        interval = setInterval(() => {
+                            seconds++;
+                            updateChrono();
+                        }, 1000);
+                    }
+                });
+                chronoPause.addEventListener("click", () => {
+                    running = false;
+                    clearInterval(interval);
+                });
+                chronoReset.addEventListener("click", () => {
+                    running = false;
+                    clearInterval(interval);
+                    seconds = 0;
+                    updateChrono();
+                });
+                reboursStart.addEventListener("click", () => {
+                    if (!running) {
+                        seconds = parseInt(reboursInput.value, 10) || 0;
+                        running = true;
+                        interval = setInterval(() => {
+                            seconds--;
+                            updateRebours();
+                        }, 1000);
+                    }
+                });
+                reboursReset.addEventListener("click", () => {
+                    running = false;
+                    clearInterval(interval);
+                    seconds = 0;
+                    affichageRebours.textContent = "";
+                    reboursInput.value = "";
+                });
+                const renderMode = (mode) => {
+                    clearInterval(interval);
+                    clearInterval(dateInterval);
+                    running = false;
+                    seconds = 0;
+                    dateHeureDiv.classList.remove("visible");
+                    chronoDiv.classList.remove("visible");
+                    reboursDiv.classList.remove("visible");
+                    if (mode === "date-heure") {
+                        dateHeureDiv.classList.add("visible");
+                        startDateHeure();
+                    } else if (mode === "chrono") {
+                        chronoDiv.classList.add("visible");
+                        updateChrono();
+                    } else if (mode === "rebours") {
+                        reboursDiv.classList.add("visible");
+                        affichageRebours.textContent = "";
+                    }
+                };
+                renderMode(this.getAttribute("mode"));
+                new MutationObserver(() => {
+                    renderMode(this.getAttribute("mode"));
+                }).observe(this, { attributes: true });
+            }
+        }
+        customElements.define("composant-montre", MontrerHeure);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <title>Scanner QR Code</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #e07c18;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            margin-bottom: 15px;
+            color: #555;
+            font-size: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .inputText {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .selectQ {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .générer, .scanner-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .générer:hover, .scanner-btn:hover {
+            background: #0056b3;
+        }
+
+        .scanner-btn.stop {
+            background: #dc3545;
+        }
+
+        .scanner-btn.stop:hover {
+            background: #c82333;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            min-height: 50px;
+        }
+
+        #qr-reader {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        #scan-output {
+            text-align: center;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Generateur et Scanner QR Code</h1>
+
+        <div class="section">
+            <h2>Generer un code</h2>
+            <div class="input-group">
+                <input class="inputText" type="text" maxlength="200" placeholder="Entrez votre texte">
+                <select class="selectQ">
+                    <option value="qrcode" selected>QR Code</option>
+                    <option value="azteccode">Aztec</option>
+                    <option value="pdf417">PDF417</option>
+                </select>
+                <button class="générer">Generer</button>
+            </div>
+            <div class="result"></div>
+        </div>
+        <div class="section">
+            <h2>Scanner un code</h2>
+            <button class="scanner-btn" id="toggleScanner">Demarrer le scanner</button>
+            <div id="qr-reader" style="display:none; margin-top: 15px;"></div>
+            <div id="scan-output" class="result"></div>
+        </div>
+    </div>
+    <script>
+        let input = document.querySelector(".inputText");
+        let button = document.querySelector(".générer");
+        let select = document.querySelector(".selectQ");
+        button.addEventListener("click", () => {
+            if (input.value.trim() == "") {
+                alert("Entrez un texte");
+                return;
+            }
+            const text = encodeURIComponent(input.value.trim());
+            document.querySelector(".result").innerHTML = `<img alt="Barcode: ${input.value}"
+                src="https://bwipjs-api.metafloor.com/?bcid=${select.value}&text=${text}">`;
+        });
+
+        let html5Qrcode;
+        let isScanning = false;
+        const toggleBtn = document.getElementById("toggleScanner");
+        const readerDiv = document.getElementById("qr-reader");
+
+        function onScanSuccess(decodedText, decodedResult) {
+            const format =
+                (decodedResult?.result?.format?.formatName) ||
+                (decodedResult?.result?.formatName) ||
+                (decodedResult?.format?.formatName) ||
+                "inconnu";
+            document.getElementById("scan-output").innerHTML =
+                `Lu: <b>${decodedText}</b><br>Type detecte: <b>${format}</b>`;
+            console.log(`Code scanne = ${decodedText}`, decodedResult);
+        }
+
+        toggleBtn.addEventListener("click", async () => {
+            if (!isScanning) {
+                readerDiv.style.display = "block";
+                html5Qrcode = new Html5Qrcode("qr-reader");
+                
+                const config = {
+                    fps: 10,
+                    qrbox: 250
+                };
+
+                try {
+                    await html5Qrcode.start(
+                        { facingMode: "environment" },
+                        config,
+                        onScanSuccess
+                    );
+                    isScanning = true;
+                    toggleBtn.textContent = "Arreter le scanner";
+                    toggleBtn.classList.add("stop");
+                } catch (err) {
+                    console.error("Erreur:", err);
+                    alert("Impossible de demarrer la camera");
+                }
+            } else {
+                await html5Qrcode.stop();
+                readerDiv.style.display = "none";
+                isScanning = false;
+                toggleBtn.textContent = "Demarrer le scanner";
+                toggleBtn.classList.remove("stop");
+            }
+        });
+    </script>
+</body>
+
+</html>
